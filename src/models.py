@@ -24,23 +24,32 @@ def import_teams(json_file):
 
 # Consider the team as read from pool stage with additional stats
 class Team:
-    def __init__(self, name = '', wr_ranking = 30.00, pool = None, pool_points = None, points_for = None, points_against = None, tries_for = None, tries_against = None):
+    def __init__(self, name = '', wr_ranking = 30.00, pool = None, pool_points = 0, won = 0, draw = 0, loss = 0, points_for = 0, points_against = 0, tries_for = 0, tries_against = 0, bonus_points = 0):
         self.name = name
         self.wr_ranking = wr_ranking
         self.pool = pool
         self.pool_points = pool_points # This is the actual points value for the pool stage
+        self.won = won
+        self.draw = draw
+        self.loss = loss
         self.points_for = points_for
         self.points_against = points_against
         self.tries_for = tries_for
         self.tries_against = tries_against
+        self.bonus_points = bonus_points
+
+    def get_differential(self):
+        return (self.points_for or 0) - (self.points_against or 0)
+    
+    def get_try_differential(self):
+        return (self.tries_for or 0) - (self.tries_against or 0)
     
     def __str__(self):
-        return f"{self.name}:\n- WR: {self.wr_ranking} points\n- Pool: {self.pool}\n- Pool Points: {self.pool_points}\n- Points For: {self.points_for}\n- Points Against: {self.points_against}\n- Tries For: {self.tries_for}\n- Tries Against: {self.tries_against}"
-
+        return f"{self.name:<15} {self.won} \t {self.draw} \t {self.loss} \t {self.points_for} \t {self.points_against} \t {self.get_differential()} \t {self.tries_for} \t {self.bonus_points} \t {self.pool_points}"
     
 # Match object to hold match information
 class Match:
-    def __init__(self, team1: Team, team2: Team):
+    def __init__(self, team1: Team, team2: Team, is_knockout: bool = False):
         self.team1 = team1
         self.team2 = team2
 
@@ -104,39 +113,93 @@ class Match:
         team2_score = (team2_tries * 5) + (team2_conversions * 2) + (team2_penalties * 3)
 
         #print(f"Final Score: {self.team1.name}: {team1_score}, {self.team2.name}: {team2_score}")
-        return [[self.team1.name, team1_score, team1_tries], [self.team2.name, team2_score, team2_tries]]
+        return [[self.team1, team1_score, team1_tries], [self.team2, team2_score, team2_tries]]
+
 
 class Pool:
     def __init__(self, pool_name: str, teams: list[Team]):
         self.pool_name = pool_name
         self.teams = teams
 
-    def __str__(self):
-        team_names = ', '.join([team.name for team in self.teams])
-        return f"Pool {self.pool_name}: {team_names}"
-    
-    def update_pool_scores(self):
-        pass
-    
-    def calculate_match_points(self): # Calculate points based on outcome of game
-        pass
+    def sort_teams_by_points(self):
+        self.teams.sort(key=lambda x: (-x.pool_points, -x.get_differential(), -x.get_try_differential()))
 
+    def __str__(self):
+        self.sort_teams_by_points()
+        return f"Pool {self.pool_name:<11}W \t D \t L \t PF \t PA \t +/- \t TF \t BP \t PTS\n" + "\n".join([str(team) for team in self.teams])
+    
+    def calculate_match_points(self, result_1, result_2): # Calculate points based on outcome of game
+        team1_name, team1_score, team1_tries = result_1
+        team2_name, team2_score, team2_tries = result_2
+
+        outcome_points_team1 = 0
+        outcome_points_team2 = 0
+
+        if team1_score > team2_score: # Team 1 wins
+            outcome_points_team1 += 4
+            outcome_points_team2 += 0
+            
+            # Update team objects
+            team1_name.won += 1
+            team2_name.loss += 1
+            
+        elif team2_score > team1_score: # Team 2 wins
+            outcome_points_team2 += 4
+            outcome_points_team1 += 0
+
+            # Update team objects
+            team2_name.won += 1
+            team1_name.loss += 1
+        else: # Draw
+            outcome_points_team1 += 2
+            outcome_points_team2 += 2
+
+            # Update team objects
+            team1_name.draw += 1
+            team2_name.draw += 1
+        
+        # Try bonus points
+        if team1_tries >= 4:
+            outcome_points_team1 += 1
+            team1_name.bonus_points = (team1_name.bonus_points or 0) + 1
+        if team2_tries >= 4:
+            outcome_points_team2 += 1
+            team2_name.bonus_points = (team2_name.bonus_points or 0) + 1
+
+        # Losing bonus points for difference less than or equal to 7
+        if abs(team1_score - team2_score) <= 7:
+            if team1_score > team2_score:
+                outcome_points_team2 += 1
+                team2_name.bonus_points = (team2_name.bonus_points or 0) + 1
+
+            elif team2_score > team1_score:
+                outcome_points_team1 += 1
+                team1_name.bonus_points = (team1_name.bonus_points or 0) + 1
+
+        # Update team pool points
+        team1_name.pool_points = (team1_name.pool_points or 0) + outcome_points_team1
+        team2_name.pool_points = (team2_name.pool_points or 0) + outcome_points_team2
+
+        # Update points for and against
+        team1_name.points_for = (team1_name.points_for or 0) + team1_score
+        team1_name.points_against = (team1_name.points_against or 0) + team2_score 
+
+        team2_name.points_for = (team2_name.points_for or 0) + team2_score
+        team2_name.points_against = (team2_name.points_against or 0) + team1_score
+
+        # Update tries for
+        team1_name.tries_for = (team1_name.tries_for or 0) + team1_tries
+        team2_name.tries_for = (team2_name.tries_for or 0)  + team2_tries
+      
     def play_matches_in_pool(self):
         matches = itertools.combinations(self.teams, 2) # Generate all possible match combinations in the pool
         
-        test = next(matches)
-        print(f'Test Match: {test[0].name} vs {test[1].name}')
+        for team1, team2 in matches:
+            match = Match(team1, team2)
+            result_1, result_2 = match.play_match()
+            self.calculate_match_points(result_1, result_2)
+        print(self , "\n")
 
-        outcome = Match(test[0], test[1]).play_match()
-        print(outcome)
-    
-    
-
-
-teams = import_teams('data/teams.json')
-
-Pool_B = Pool('B', [team for team in teams if team.pool == 'B'])
-Pool_B.play_matches_in_pool()
 
 
 
