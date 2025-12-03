@@ -1,32 +1,124 @@
 {
-    "South Africa": 93.94,
-    "New Zealand": 90.33,
-    "England": 89.41,
-    "Ireland": 87.97,
-    "France": 87.24,
-    "Argentina": 84.97,
-    "Australia": 81.53,
-    "Fiji": 81.14,
-    "Scotland": 80.22,
-    "Italy": 78.98,
-    "Wales": 74.23,
-    "Japan": 74.09,
-    "Georgia": 73.18,
-    "Uruguay": 69.19,
-    "Spain": 69.01,
-    "United States": 68.26,
-    "Chile": 66.72,
-    "Tonga": 66.66,
-    "Samoa": 66.43,
-    "Portugal": 64.98,
-    "Belgium": 62.32,
-    "Romania": 61.5,
-    "Hong Kong": 59.61,
-    "Zimbabwe": 58.8,
-    "Canada": 58.75,
-    "Netherlands": 57.01,
-    "Namibia": 56.96,
-    "Switzerland": 55.26,
-    "Czech Republic": 54.78,
-    "Poland": 52.96
+    "teams": [
+        {
+            "team_name": "South Africa",
+            "wr_points": 93.94,
+            "pool": "B"
+        },
+        {
+            "team_name": "New Zealand",
+            "wr_points": 90.33,
+            "pool": "A"
+        },
+        {
+            "team_name": "England",
+            "wr_points": 89.41,
+            "pool": "F"
+        },
+        {
+            "team_name": "Ireland",
+            "wr_points": 87.97,
+            "pool": "D"
+        },
+        {
+            "team_name": "France",
+            "wr_points": 87.24,
+            "pool": "E"
+        },
+        {
+            "team_name": "Argentina",
+            "wr_points": 84.97,
+            "pool": "C"
+        },
+        {
+            "team_name": "Australia",
+            "wr_points": 81.53,
+            "pool": "A"
+        },
+        {
+            "team_name": "Fiji",
+            "wr_points": 81.14,
+            "pool": "C"
+        },
+        {
+            "team_name": "Scotland",
+            "wr_points": 80.22,
+            "pool": "D"
+        },
+        {
+            "team_name": "Italy",
+            "wr_points": 78.98,
+            "pool": "B"
+        },
+        {
+            "team_name": "Wales",
+            "wr_points": 74.23,
+            "pool": "F"
+        },
+        {
+            "team_name": "Japan",
+            "wr_points": 74.09,
+            "pool": "E"
+        },
+        {
+            "team_name": "Georgia",
+            "wr_points": 73.18,
+            "pool": "B"
+        },
+        {
+            "team_name": "Uruguay",
+            "wr_points": 69.19,
+            "pool": "D"
+        },
+        {
+            "team_name": "Spain",
+            "wr_points": 69.01,
+            "pool": "C"
+        },
+        {
+            "team_name": "United States",
+            "wr_points": 68.26,
+            "pool": "E"
+        },
+        {
+            "team_name": "Chile",
+            "wr_points": 66.72,
+            "pool": "A"
+        },
+        {
+            "team_name": "Tonga",
+            "wr_points": 66.66,
+            "pool": "F"
+        },
+        {
+            "team_name": "Samoa",
+            "wr_points": 66.43,
+            "pool": "E"
+        },
+        {
+            "team_name": "Portugal",
+            "wr_points": 64.98,
+            "pool": "D"
+        },
+        {
+            "team_name": "Romania",
+            "wr_points": 61.5,
+            "pool": "B"
+        },
+        {
+            "team_name": "Hong Kong",
+            "wr_points": 59.61,
+            "pool": "A"
+        },
+        {
+            "team_name": "Zimbabwe",
+            "wr_points": 58.8,
+            "pool": "F"
+        },
+        {
+            "team_name": "Canada",
+            "wr_points": 58.75,
+            "pool": "C"
+        }
+    ]
 }
