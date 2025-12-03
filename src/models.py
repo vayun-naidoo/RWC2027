@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import random
+import itertools
 
 CONST_TRY_AVE = 3.0
 
@@ -69,7 +70,7 @@ class Match:
             team1_tries = np.random.poisson(CONST_TRY_AVE)
             team2_tries = np.random.poisson(CONST_TRY_AVE)
         
-        print(f"Expected tries: {self.team1.name}: {team1_tries}, {self.team2.name}: {team2_tries}")
+        #print(f"Expected tries: {self.team1.name}: {team1_tries}, {self.team2.name}: {team2_tries}")
         
         # ==============================================================
         # STEP 2: CALCUATE EXPECTED CONVERSTIONS BASED ON TRIES
@@ -84,7 +85,7 @@ class Match:
         for i in range(team2_tries): 
             if random.random() < 0.78: team2_conversions += 1
 
-        print(f"Expected conversions: {self.team1.name}: {team1_conversions}, {self.team2.name}: {team2_conversions}")
+        #print(f"Expected conversions: {self.team1.name}: {team1_conversions}, {self.team2.name}: {team2_conversions}")
 
         # ==============================================================
         # STEP 3: CALCUATE PENALTIES
@@ -94,7 +95,7 @@ class Match:
         team1_penalties = np.random.poisson(1.5)
         team2_penalties = np.random.poisson(1.5)
 
-        print(f"Expected penalties: {self.team1.name}: {team1_penalties}, {self.team2.name}: {team2_penalties}")
+        #print(f"Expected penalties: {self.team1.name}: {team1_penalties}, {self.team2.name}: {team2_penalties}")
 
         # ==============================================================
         # STEP 4: CALCUATE FINAL SCORES
@@ -102,7 +103,8 @@ class Match:
         team1_score = (team1_tries * 5) + (team1_conversions * 2) + (team1_penalties * 3)
         team2_score = (team2_tries * 5) + (team2_conversions * 2) + (team2_penalties * 3)
 
-        print(f"Final Score: {self.team1.name}: {team1_score}, {self.team2.name}: {team2_score}")
+        #print(f"Final Score: {self.team1.name}: {team1_score}, {self.team2.name}: {team2_score}")
+        return [[self.team1.name, team1_score, team1_tries], [self.team2.name, team2_score, team2_tries]]
 
 class Pool:
     def __init__(self, pool_name: str, teams: list[Team]):
@@ -112,9 +114,28 @@ class Pool:
     def __str__(self):
         team_names = ', '.join([team.name for team in self.teams])
         return f"Pool {self.pool_name}: {team_names}"
+    
+    def update_pool_scores(self):
+        pass
+    
+    def play_matches_in_pool(self):
+        matches = itertools.combinations(self.teams, 2) # Generate all possible match combinations in the pool
+        
+        test = next(matches)
+        print(f'Test Match: {test[0].name} vs {test[1].name}')
+
+        outcome = Match(test[0], test[1]).play_match()
+        print(outcome)
+    
+    
 
 
 teams = import_teams('data/teams.json')
-#print(teams[0])
-test_match = Match(teams[0], teams[0])
-test_match.play_match()        
+
+Pool_A = Pool('A', [team for team in teams if team.pool == 'A'])
+Pool_A.play_matches_in_pool()
+
+
+
+
+ 
