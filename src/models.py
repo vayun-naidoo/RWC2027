@@ -118,6 +118,9 @@ class Pool:
     def update_pool_scores(self):
         pass
     
+    def calculate_match_points(self): # Calculate points based on outcome of game
+        pass
+
     def play_matches_in_pool(self):
         matches = itertools.combinations(self.teams, 2) # Generate all possible match combinations in the pool
         
@@ -132,8 +135,8 @@ class Pool:
 
 teams = import_teams('data/teams.json')
 
-Pool_A = Pool('A', [team for team in teams if team.pool == 'A'])
-Pool_A.play_matches_in_pool()
+Pool_B = Pool('B', [team for team in teams if team.pool == 'B'])
+Pool_B.play_matches_in_pool()
 
 
 
