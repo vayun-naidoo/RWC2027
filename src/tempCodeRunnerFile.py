@@ -1,0 +1,1 @@
+a[team_name] = float(points)
