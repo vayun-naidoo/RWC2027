@@ -38,7 +38,7 @@ for team in third_place_teams:
     print(f"{team.name} from Pool {team.pool} with {team.pool_points} points")
 
 # Place third place teams in order of pool points to determine best four
-third_place_teams.sort(key=lambda x: (-x.pool_points, -x.get_differential(), -x.get_try_differential()))
+third_place_teams.sort(key=lambda x: (-x.pool_points, -x.get_differential(), -x.get_try_differential(), -x.points_for, -x.tries_for))
 best_four_third_place = third_place_teams[:4] 
 
 print("\nBest four third place teams advancing to the knockout stage:")
