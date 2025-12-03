@@ -73,9 +73,9 @@ for row in rows:
 
         if team_name in confirmed_teams:
             # Save it to our dictionary
-            scraped_data['teams'].append({'team_name':team_name, 
-                                          'wr_points':float(wr_points), 
-                                          'pool': confirmed_teams[team_name]})
+            scraped_data['teams'].append({'team_name':  team_name, 
+                                          'wr_points':  float(wr_points), 
+                                          'pool':       confirmed_teams[team_name]})
         
 # Save the scraped data to a JSON file
 with open('data/teams.json', 'w') as f:

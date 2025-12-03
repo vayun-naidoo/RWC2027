@@ -5,10 +5,10 @@ def import_teams(json_file):
     team_list = []
     try:
         with open(json_file, 'r') as f:
-            teams = json.load(f)
-        for team_name, wr_points in teams.items():
-            team = Team(team_name, wr_points)
-            team_list.append(team)
+            import_teams = json.load(f)
+        for team in import_teams['teams']:
+            team_obj = Team(name=team['team_name'], wr_ranking=team['wr_points'], pool=team['pool'])
+            team_list.append(team_obj)
             
     except FileNotFoundError:
         print(f"File {json_file} not found.")
@@ -31,7 +31,7 @@ class Team:
     
     def __str__(self):
         return f"{self.name}:\n- WR: {self.wr_ranking} points\n- Pool: {self.pool}\n- Pool Points: {self.pool_points}\n- Points For: {self.points_for}\n- Points Against: {self.points_against}\n- Tries For: {self.tries_for}\n- Tries Against: {self.tries_against}"
-    
+
 # Match object to hold match information
 class Match:
     def __init__(self, team1, team2, team1_score = None, team1_tries = None, team2_tries = None, team2_score = None):
