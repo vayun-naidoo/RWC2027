@@ -122,7 +122,7 @@ class Pool:
         self.teams = teams
 
     def sort_teams_by_points(self):
-        self.teams.sort(key=lambda x: (-x.pool_points, -x.get_differential(), -x.get_try_differential()))
+        self.teams.sort(key=lambda x: (-x.pool_points, -x.get_differential(), -x.get_try_differential(), -x.points_for, -x.points_against))
 
     def __str__(self):
         self.sort_teams_by_points()
