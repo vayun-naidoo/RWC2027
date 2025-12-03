@@ -22,6 +22,25 @@ for pool in [Pool_A, Pool_B, Pool_C, Pool_D, Pool_E, Pool_F]:
     pool.sort_teams_by_points()
     top_2_teams.extend(pool.teams[:2])
 
+# Top two from each pool advance to knockout stage
 print("Top 2 teams from each pool advancing to the knockout stage:")
 for team in top_2_teams:
     print(f"{team.name} from Pool {team.pool} with {team.pool_points} points")
+
+# Gather all third place teams
+third_place_teams = []
+for pool in [Pool_A, Pool_B, Pool_C, Pool_D, Pool_E, Pool_F]:
+    pool.sort_teams_by_points()
+    third_place_teams.append(pool.teams[2]) 
+
+print("\nThird place teams from each pool:")
+for team in third_place_teams:
+    print(f"{team.name} from Pool {team.pool} with {team.pool_points} points")
+
+# Place third place teams in order of pool points to determine best four
+third_place_teams.sort(key=lambda x: (-x.pool_points, -x.get_differential(), -x.get_try_differential()))
+best_four_third_place = third_place_teams[:4] 
+
+print("\nBest four third place teams advancing to the knockout stage:")
+for team in best_four_third_place:
+    print(f"{team.name} from Pool {team.pool} with {team.pool_points} points")  
