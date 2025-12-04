@@ -52,6 +52,7 @@ class Match:
     def __init__(self, team1: Team, team2: Team, is_knockout: bool = False):
         self.team1 = team1
         self.team2 = team2
+        self.is_knockout = is_knockout
 
     def play_match(self):
         # ==============================================================
@@ -115,6 +116,20 @@ class Match:
         #print(f"Final Score: {self.team1.name}: {team1_score}, {self.team2.name}: {team2_score}")
         return [[self.team1, team1_score, team1_tries], [self.team2, team2_score, team2_tries]]
 
+    def play_knockout_match(self):
+        if not self.is_knockout:
+            raise ValueError("This is not a knockout match.")
+        
+        result_1, result_2 = self.play_match()
+
+        # Check for draw and resolve with sudden death
+        # TODO: Fix sudden death logic to be more realistic
+
+        while result_1[1] == result_2[1]:
+            print(f"Match between {self.team1.name} and {self.team2.name} ended in a draw at {result_1[1]} - {result_2[1]}. Proceeding to sudden death...")
+            result_1, result_2 = self.play_match()
+        
+        return result_1, result_2
 
 class Pool:
     def __init__(self, pool_name: str, teams: list[Team]):
@@ -187,20 +202,22 @@ class Pool:
         team2_name.points_for = (team2_name.points_for or 0) + team2_score
         team2_name.points_against = (team2_name.points_against or 0) + team1_score
 
-        # Update tries for
+        # Update tries for a team
         team1_name.tries_for = (team1_name.tries_for or 0) + team1_tries
         team2_name.tries_for = (team2_name.tries_for or 0)  + team2_tries
       
     def play_matches_in_pool(self):
         matches = itertools.combinations(self.teams, 2) # Generate all possible match combinations in the pool
         
+        match_results = []
         for team1, team2 in matches:
             match = Match(team1, team2)
             result_1, result_2 = match.play_match()
             self.calculate_match_points(result_1, result_2)
+            match_results.append(f"{result_1[0].name} {result_1[1]} - {result_2[1]} {result_2[0].name}")
         print(self , "\n")
-
-
+        print("\n".join(match_results))
+        print('\n' + '='*100 + '\n')
 
 
 
