@@ -7,7 +7,7 @@ from src.models import Tournament
 # ==========================================
 # CONFIGURATION
 # ==========================================
-TOTAL_SIMULATIONS = 10000
+TOTAL_SIMULATIONS = 1000000
 
 # ==========================================
 # 1. THE WORKER FUNCTION
