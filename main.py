@@ -1,121 +1,129 @@
 import time
-from collections import defaultdict
+import json
+import pandas as pd
+from collections import defaultdict, Counter
 from multiprocessing import Pool, cpu_count
-import os
 from src.models import Tournament 
 
 # ==========================================
 # CONFIGURATION
 # ==========================================
-TOTAL_SIMULATIONS = 100000
+TOTAL_SIMULATIONS = 5000
+DATA_FILE = 'data/teams.json'
 
-# ==========================================
-# 1. THE WORKER FUNCTION
-# ==========================================
 def run_batch_simulation(num_runs):
     """
-    This function runs on a separate CPU core.
-    It runs 'num_runs' tournaments and returns a local dictionary of results.
+    Returns a Dictionary where Key = TeamName, Value = Counter of Paths
     """
-    # Create a local dictionary for this specific core
-    local_stats = defaultdict(lambda: defaultdict(int))
+    local_path_counts = defaultdict(Counter)
     
     for _ in range(num_runs):
-        tourney = Tournament('data/teams.json')
-        result_dict = tourney.play() 
+        tourney = Tournament(DATA_FILE)
+        results = tourney.play() # Returns {Team: (PathTuple)}
         
-        for team_name, exit_stage in result_dict.items():
-            local_stats[team_name][exit_stage] += 1
+        for team, path in results.items():
+            local_path_counts[team][path] += 1
             
-    # We convert to a regular dict to ensure it can be sent back to the main process safely
-    return dict(local_stats)
+    return dict(local_path_counts)
 
-# ==========================================
-# 2. THE MAIN EXECUTION BLOCK
-# ==========================================
+def derive_stage_counts(final_data):
+    """
+    Converts path data back into simple stage counts for the table.
+    """
+    stage_counts = defaultdict(lambda: defaultdict(int))
+    
+    for team, paths in final_data.items():
+        for path, count in paths.items():
+            # Check what's in the path to determine stage reached
+            path_str = str(path)
+            
+            # Start from bottom (Pool) up to Winner to capture all stages reached
+            stage_counts[team]['Pool Stage'] += count # Everyone plays pool
+            
+            if "Qualified Best 3rd" in path_str or "Runner-Up" in path_str or "Winner" in path_str:
+                 # Note: This is loose matching, strictly we rely on R16 match logs
+                 pass
+
+            # Precise matching based on logs
+            if any("R16" in s for s in path) or "Qualified Best 3rd" in path_str or "Pool" in str(path[-1]) and "Winner" in str(path[-1]):
+                 # Note: Ideally we check if they PLAYED an R16 match. 
+                 # Easier way: check if they didn't exit at pool
+                 if "Pool Exit" not in str(path):
+                     stage_counts[team]['R16'] += count
+
+            if any("QF" in s for s in path):
+                stage_counts[team]['QF'] += count
+            
+            if any("SF" in s for s in path):
+                stage_counts[team]['SF'] += count
+                
+            if any("Final" in s for s in path) and "Bronze" not in str(path[-1]):
+                stage_counts[team]['Final'] += count
+                
+            if "Champion" in path:
+                stage_counts[team]['Champion'] += count
+                
+    return stage_counts
+
 if __name__ == '__main__':
     print(f"--- Starting Parallel Monte Carlo Simulation ({TOTAL_SIMULATIONS} runs) ---")
     
-    # 1. Determine capabilities
     cores = cpu_count()
-    print(f"Simulating...")
+    batch_size = TOTAL_SIMULATIONS // cores
+    work_load = [batch_size] * cores
+    work_load[0] += TOTAL_SIMULATIONS % cores
     
     start_time = time.time()
     
-    # 2. Split the work
-    # If we want 100,000 runs on 10 cores, we make a list: [10000, 10000, 10000, ...]
-    batch_size = TOTAL_SIMULATIONS // cores
-    work_load = [batch_size] * cores
-    
-    # Add any remainder to the first batch (e.g. if 100 / 3 cores)
-    work_load[0] += TOTAL_SIMULATIONS % cores
-    
-    # 3. dispatch the work
     with Pool(processes=cores) as pool:
-        # pool.map runs 'run_batch_simulation' for every item in 'work_load'
-        # It returns a list of dictionaries (one from each core)
         batch_results = pool.map(run_batch_simulation, work_load)
 
-    # 4. Aggregation (The Merge)
-    # We now have a list of separate dictionaries. We must combine them.
     print("Simulations complete. Aggregating data...")
-    final_stats = defaultdict(lambda: defaultdict(int))
     
+    # Aggregate Paths
+    final_data = defaultdict(Counter)
     for batch in batch_results:
-        for team, stages in batch.items():
-            for stage, count in stages.items():
-                final_stats[team][stage] += count
+        for team, paths in batch.items():
+            final_data[team].update(paths)
+
+    # Save Paths for Visualization
+    export_data = {}
+    for team, paths in final_data.items():
+        # Keep top 100 paths per team to save space
+        common_paths = paths.most_common(100)
+        export_data[team] = [{"path": list(p), "count": c} for p, c in common_paths]
+
+    with open("data/simulation_paths.json", "w") as f:
+        json.dump(export_data, f, indent=4)
 
     duration = time.time() - start_time
     print(f"--- Finished in {duration:.2f} seconds ---")
-    print(f"--- Speed: {TOTAL_SIMULATIONS/duration:.0f} games per second ---")
 
     # ==========================================
-    # 3. DATA PROCESSING (CUMULATIVE LOGIC)
+    # GENERATE SUMMARY TABLE
     # ==========================================
-    # (This part remains exactly the same, but uses 'final_stats')
+    stage_stats = derive_stage_counts(final_data)
     results_table = []
 
-    for team, stages in final_stats.items():
-        # Raw Percentages
-        raw_win  = (stages.get('C', 0) / TOTAL_SIMULATIONS) * 100
-        raw_2nd  = (stages.get('2nd', 0) / TOTAL_SIMULATIONS) * 100
-        raw_3rd  = (stages.get('3rd', 0) / TOTAL_SIMULATIONS) * 100
-        raw_4th  = (stages.get('4th', 0) / TOTAL_SIMULATIONS) * 100
-        raw_qf   = (stages.get('QF', 0) / TOTAL_SIMULATIONS) * 100
-        raw_r16  = (stages.get('R16', 0) / TOTAL_SIMULATIONS) * 100
-        raw_pool = (stages.get('Pool Stage', 0) / TOTAL_SIMULATIONS) * 100
-
-        # Cumulative Percentages
-        reach_final = raw_win + raw_2nd
-        reach_sf    = reach_final + raw_3rd + raw_4th
-        reach_qf    = reach_sf + raw_qf
-        reach_r16   = reach_qf + raw_r16
-        
+    for team, stats in stage_stats.items():
         row = {
             'Name': team,
-            'Win': raw_win,
-            'Reach_Final': reach_final,
-            'Reach_SF': reach_sf,
-            'Reach_QF': reach_qf,
-            'Reach_R16': reach_r16,
-            'Exit_Pool': raw_pool
+            'Win': (stats['Champion'] / TOTAL_SIMULATIONS) * 100,
+            'Final': (stats['Final'] / TOTAL_SIMULATIONS) * 100,
+            'SF': (stats['SF'] / TOTAL_SIMULATIONS) * 100,
+            'QF': (stats['QF'] / TOTAL_SIMULATIONS) * 100,
+            'R16': (stats['R16'] / TOTAL_SIMULATIONS) * 100,
         }
         results_table.append(row)
 
-    # Sort
-    results_table.sort(key=lambda x: (x['Win'], x['Reach_Final']), reverse=True)
+    # Sort by Win % then Final %
+    results_table.sort(key=lambda x: (x['Win'], x['Final']), reverse=True)
 
-    # Display
-    print(f"\n{'TEAM':<20} {'WIN (C)':<8} {'FINAL':<8} {'SF':<8} {'QF':<8} {'R16':<8} {'POOL OUT':<8}")
-    print("-" * 80)
-
+    print(f"\n{'TEAM':<20} {'WIN %':<8} {'FINAL %':<8} {'SF %':<8} {'QF %':<8} {'R16 %':<8}")
+    print("-" * 75)
     for row in results_table:
-        if row['Reach_R16'] > 0.1: 
-            print(f"{row['Name']:<20} "
-                  f"{row['Win']:>5.1f}%  "
-                  f"{row['Reach_Final']:>5.1f}%  "
-                  f"{row['Reach_SF']:>5.1f}%  "
-                  f"{row['Reach_QF']:>5.1f}%  "
-                  f"{row['Reach_R16']:>5.1f}%  "
-                  f"{row['Exit_Pool']:>6.1f}%")
+        if row['R16'] > 0.1: # Only show teams with >0.1% chance of making knockouts
+            print(f"{row['Name']:<20} {row['Win']:>6.1f}   {row['Final']:>6.1f}   {row['SF']:>6.1f}   {row['QF']:>6.1f}   {row['R16']:>6.1f}")
+
+    print("\nDetailed path data saved to data/simulation_paths.json")
+    print("Run 'python visualise_text.py' to see team paths.")
