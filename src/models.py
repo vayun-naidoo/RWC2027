@@ -26,7 +26,7 @@ def import_teams(json_file):
 
 # Consider the team as read from pool stage with additional stats
 class Team:
-    def __init__(self, name = '', wr_ranking = 30.00, pool = None, pool_points = 0, won = 0, draw = 0, loss = 0, points_for = 0, points_against = 0, tries_for = 0, tries_against = 0, bonus_points = 0):
+    def __init__(self, name = '', wr_ranking = 30.00, pool = '', pool_points = 0, won = 0, draw = 0, loss = 0, points_for = 0, points_against = 0, tries_for = 0, tries_against = 0, bonus_points = 0):
         self.name = name
         self.wr_ranking = wr_ranking
         self.pool = pool
@@ -47,7 +47,7 @@ class Team:
         return (self.tries_for or 0) - (self.tries_against or 0)
     
     def __str__(self):
-        return f"{self.name:<15} {self.won} \t {self.draw} \t {self.loss} \t {self.points_for} \t {self.points_against} \t {self.get_differential()} \t {self.tries_for} \t {self.bonus_points} \t {self.pool_points}"
+        return f"{self.name:<15} {self.won} \t {self.draw} \t {self.loss} \t {self.points_for} \t {self.points_against} \t {self.get_differential()} \t {self.tries_for} \t {self.bonus_points} \t {self.pool_points} \t ({self.wr_ranking})"
     
 # Match object to hold match information
 class Match:
@@ -64,24 +64,12 @@ class Match:
         rating_diff = self.team1.wr_ranking - self.team2.wr_ranking
 
         # From here, the 'A' team is the team with the higher ranking while the 'B' team is the lower ranked team
-        lambda_a = CONST_TRY_AVE + (rating_diff / 10)
-        lambda_b = CONST_TRY_AVE - (rating_diff / 10)
+        lambda_a = max(0.2, CONST_TRY_AVE + (rating_diff / 10))
+        lambda_b = max(0.2, CONST_TRY_AVE - (rating_diff / 10))
 
-        if lambda_a < 0.2: # Clamping statement for large differentials
-            lambda_a = 0.2
-        if lambda_b < 0.2:  
-            lambda_b = 0.2
+        team1_tries = np.random.poisson(lambda_a)
+        team2_tries = np.random.poisson(lambda_b)
 
-        if rating_diff > 0: # Team 1 better than Team 2, hence 1 is assigned A and 2 is assigned B
-            team1_tries = np.random.poisson(lambda_a)
-            team2_tries = np.random.poisson(lambda_b)
-        elif rating_diff < 0: # Team 2 better than Team 1, hence 2 is assigned A and 1 is assigned B
-            team1_tries = np.random.poisson(lambda_b)
-            team2_tries = np.random.poisson(lambda_a)
-        else: # Rankings must be equal - unlikely but possible. This in essense just sets both to the average value
-            team1_tries = np.random.poisson(CONST_TRY_AVE)
-            team2_tries = np.random.poisson(CONST_TRY_AVE)
-        
         #print(f"Expected tries: {self.team1.name}: {team1_tries}, {self.team2.name}: {team2_tries}")
         
         # ==============================================================
@@ -145,9 +133,10 @@ class Pool:
         self.sort_teams_by_points()
         return f"Pool {self.pool_name:<11}W \t D \t L \t PF \t PA \t +/- \t TF \t BP \t PTS\n" + "\n".join([str(team) for team in self.teams])
     
-    def calculate_match_points(self, result_1, result_2): # Calculate points based on outcome of game
+    def calculate_match_points(self, result_1, result_2, print_results = False): # Calculate points based on outcome of game
         team1_name, team1_score, team1_tries = result_1
         team2_name, team2_score, team2_tries = result_2
+        self.print_results = print_results
 
         outcome_points_team1 = 0
         outcome_points_team2 = 0
@@ -208,18 +197,21 @@ class Pool:
         team1_name.tries_for = (team1_name.tries_for or 0) + team1_tries
         team2_name.tries_for = (team2_name.tries_for or 0)  + team2_tries
       
-    def play_matches_in_pool(self):
+    def play_matches_in_pool(self, print_results = False):
         matches = itertools.combinations(self.teams, 2) # Generate all possible match combinations in the pool
-        
+        self.print_results = print_results
+
         match_results = []
         for team1, team2 in matches:
             match = Match(team1, team2)
             result_1, result_2 = match.play_match()
             self.calculate_match_points(result_1, result_2)
             match_results.append(f"{result_1[0].name} {result_1[1]} - {result_2[1]} {result_2[0].name}")
-        #print(self , "\n")
-        #print("\n".join(match_results))
-       # print('\n' + '='*100 + '\n')
+
+        if print_results:
+            print(self , "\n")
+            print("\n".join(match_results))
+            print('\n' + '='*100 + '\n')
 
 
 
@@ -228,7 +220,10 @@ class Tournament:
     def __init__(self, data):
         self.data = data
 
-    def play(self , print_statement = False):
+    def play(self , print_results = False, print_statement = False):
+        self.print_results = print_results
+        self.print_statement = print_statement
+
         results = {}
         teams = import_teams(self.data)
         results = {team.name: "Pool Stage" for team in teams}
@@ -240,12 +235,12 @@ class Tournament:
         Pool_E = Pool('E', [team for team in teams if team.pool == 'E'])
         Pool_F = Pool('F', [team for team in teams if team.pool == 'F'])
 
-        Pool_A.play_matches_in_pool()
-        Pool_B.play_matches_in_pool()
-        Pool_C.play_matches_in_pool()
-        Pool_D.play_matches_in_pool()
-        Pool_E.play_matches_in_pool()
-        Pool_F.play_matches_in_pool()
+        Pool_A.play_matches_in_pool(print_results = self.print_results)
+        Pool_B.play_matches_in_pool(print_results = self.print_results)
+        Pool_C.play_matches_in_pool(print_results = self.print_results)
+        Pool_D.play_matches_in_pool(print_results = self.print_results)
+        Pool_E.play_matches_in_pool(print_results = self.print_results)
+        Pool_F.play_matches_in_pool(print_results = self.print_results)
 
         top_2_teams = []
         third_place_teams = []
