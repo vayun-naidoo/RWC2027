@@ -8,7 +8,7 @@ from src.models import Tournament
 # ==========================================
 # CONFIGURATION
 # ==========================================
-TOTAL_SIMULATIONS = 5000
+TOTAL_SIMULATIONS = 100000
 DATA_FILE = 'data/teams.json'
 
 def run_batch_simulation(num_runs):

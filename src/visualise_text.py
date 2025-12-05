@@ -22,8 +22,8 @@ def print_tree(team_name):
     # Sort by most common
     sorted_paths = sorted(paths, key=lambda x: x['count'], reverse=True)
 
-    # Print top 15 paths
-    for entry in sorted_paths[:15]:
+    # Print all paths
+    for entry in sorted_paths:
         count = entry['count']
         prob = (count / total_runs) * 100
         path = entry['path']
